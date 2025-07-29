@@ -11,14 +11,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Division des tokens en parties pour plus de sécurité
-TELEGRAM_TOKEN_PART1 = "8428723767"
-TELEGRAM_TOKEN_PART2 = ":AAGImaLy3kH1OTJeoMeL8yfBHOL2YcrnTlo"
-BOT_TOKEN = TELEGRAM_TOKEN_PART1 + TELEGRAM_TOKEN_PART2
+# Récupération et assemblage des tokens depuis les variables d'environnement
+TELEGRAM_TOKEN_PART1 = os.getenv('TELEGRAM_TOKEN_PART1')
+TELEGRAM_TOKEN_PART2 = os.getenv('TELEGRAM_TOKEN_PART2')
+BOT_TOKEN = f"{TELEGRAM_TOKEN_PART1}{TELEGRAM_TOKEN_PART2}"
 
-GITHUB_TOKEN_PART1 = "ghp_FdhLrRA2VYSXE"
-GITHUB_TOKEN_PART2 = "NmPbV5ZtDeFBCAeNc2xpMaI"
-GIT_TOKEN = GITHUB_TOKEN_PART1 + GITHUB_TOKEN_PART2
+GITHUB_TOKEN_PART1 = os.getenv('GITHUB_TOKEN_PART1')
+GITHUB_TOKEN_PART2 = os.getenv('GITHUB_TOKEN_PART2')
+GIT_TOKEN = f"{GITHUB_TOKEN_PART1}{GITHUB_TOKEN_PART2}"
+
+# Vérification des tokens
+if not all([TELEGRAM_TOKEN_PART1, TELEGRAM_TOKEN_PART2, GITHUB_TOKEN_PART1, GITHUB_TOKEN_PART2]):
+    raise ValueError("Toutes les parties des tokens doivent être définies dans les variables d'environnement")
 
 # Initialisation de l'API GitHub avec vérification
 try:
@@ -28,6 +32,8 @@ try:
 except Exception as e:
     logger.error(f"Erreur d'initialisation GitHub: {e}")
     raise
+
+# Le reste du code reste identique...
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -53,7 +59,6 @@ async def repos(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text("Sélectionnez un dépôt :", reply_markup=reply_markup)
-        logger.info(f"Liste des dépôts demandée par {update.effective_user.id}")
     except Exception as e:
         logger.error(f"Erreur dans repos: {e}")
         await update.message.reply_text("Erreur lors de la récupération des dépôts")
@@ -80,7 +85,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup = InlineKeyboardMarkup(keyboard)
             
             await query.edit_message_text(f"Contenu du dépôt {repo_name}:", reply_markup=reply_markup)
-            logger.info(f"Affichage du contenu du dépôt {repo_name}")
             
         elif data.startswith("file_"):
             _, repo_name, *path_parts = data.split("_")
@@ -100,11 +104,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup = InlineKeyboardMarkup(keyboard)
             
             await query.edit_message_text(file_content, reply_markup=reply_markup)
-            logger.info(f"Affichage du fichier {file_path}")
             
         elif data == "back_to_repos":
             await repos(update, context)
-            logger.info("Retour à la liste des dépôts")
             
     except Exception as e:
         logger.error(f"Erreur dans button_callback: {e}")
