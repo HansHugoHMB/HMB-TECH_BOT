@@ -4,10 +4,10 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from github import Github
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_TOKEN = os.getenv("GIT_TOKEN")
 
 # Initialise le client GitHub
-gh = Github(GITHUB_TOKEN)
+gh = Github(GIT_TOKEN)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("👋 Salut, bot HMB-Tech est en ligne ! Tape /repos pour voir tes dépôts.")
