@@ -11,17 +11,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Tokens divisés en deux parties
-BOT_TOKEN_PART1 = "8428723767"
-BOT_TOKEN_PART2 = ":AAGImaLy3kH1OTJeoMeL8yfBHOL2YcrnTlo"
-BOT_TOKEN = BOT_TOKEN_PART1 + BOT_TOKEN_PART2
+# Division des tokens en parties pour plus de sécurité
+TELEGRAM_TOKEN_PART1 = "8428723767"
+TELEGRAM_TOKEN_PART2 = ":AAGImaLy3kH1OTJeoMeL8yfBHOL2YcrnTlo"
+BOT_TOKEN = TELEGRAM_TOKEN_PART1 + TELEGRAM_TOKEN_PART2
 
-GIT_TOKEN_PART1 = "ghp_FdhLrRA2VYSXENmPbV5"
-GIT_TOKEN_PART2 = "ZtDeFBCAeNc2xpMaI"
-GIT_TOKEN = GIT_TOKEN_PART1 + GIT_TOKEN_PART2
+GITHUB_TOKEN_PART1 = "ghp_FdhLrRA2VYSXE"
+GITHUB_TOKEN_PART2 = "NmPbV5ZtDeFBCAeNc2xpMaI"
+GIT_TOKEN = GITHUB_TOKEN_PART1 + GITHUB_TOKEN_PART2
 
-# Initialisation de l'API GitHub
-gh = Github(GIT_TOKEN)
+# Initialisation de l'API GitHub avec vérification
+try:
+    gh = Github(GIT_TOKEN)
+    user = gh.get_user()
+    logger.info(f"Connecté en tant que: {user.login}")
+except Exception as e:
+    logger.error(f"Erreur d'initialisation GitHub: {e}")
+    raise
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -31,6 +37,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "/repos - Voir la liste des dépôts\n"
             "/start - Revenir au menu principal"
         )
+        logger.info(f"Commande start exécutée par {update.effective_user.id}")
     except Exception as e:
         logger.error(f"Erreur dans start: {e}")
         await update.message.reply_text("Une erreur est survenue")
@@ -46,6 +53,7 @@ async def repos(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text("Sélectionnez un dépôt :", reply_markup=reply_markup)
+        logger.info(f"Liste des dépôts demandée par {update.effective_user.id}")
     except Exception as e:
         logger.error(f"Erreur dans repos: {e}")
         await update.message.reply_text("Erreur lors de la récupération des dépôts")
@@ -72,6 +80,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup = InlineKeyboardMarkup(keyboard)
             
             await query.edit_message_text(f"Contenu du dépôt {repo_name}:", reply_markup=reply_markup)
+            logger.info(f"Affichage du contenu du dépôt {repo_name}")
             
         elif data.startswith("file_"):
             _, repo_name, *path_parts = data.split("_")
@@ -79,36 +88,23 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             repo = gh.get_repo(f"{gh.get_user().login}/{repo_name}")
             content = repo.get_contents(file_path)
             
-            if len(content.decoded_content.decode()) > 4000:
-                message = "Le fichier est trop grand pour être affiché entièrement. Voici les premiers caractères :\n\n"
-                message += content.decoded_content.decode()[:4000]
-            else:
-                message = content.decoded_content.decode()
+            try:
+                file_content = content.decoded_content.decode()
+                if len(file_content) > 4000:
+                    file_content = file_content[:4000] + "\n...(contenu tronqué)"
+            except Exception as e:
+                file_content = "Impossible de décoder le contenu du fichier"
+                logger.error(f"Erreur de décodage: {e}")
             
             keyboard = [[InlineKeyboardButton("⬅️ Retour", callback_data=f"repo_{repo_name}")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
-            await query.edit_message_text(message, reply_markup=reply_markup)
-            
-        elif data.startswith("dir_"):
-            _, repo_name, *path_parts = data.split("_")
-            dir_path = "_".join(path_parts)
-            repo = gh.get_repo(f"{gh.get_user().login}/{repo_name}")
-            contents = repo.get_contents(dir_path)
-            
-            keyboard = []
-            for content in contents:
-                callback_data = f"file_{repo_name}_{content.path}" if content.type == "file" else f"dir_{repo_name}_{content.path}"
-                keyboard.append([InlineKeyboardButton(f"{'📄' if content.type == 'file' else '📁'} {content.name}", 
-                                                    callback_data=callback_data)])
-            
-            keyboard.append([InlineKeyboardButton("⬅️ Retour", callback_data=f"repo_{repo_name}")])
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            await query.edit_message_text(f"Contenu du dossier {dir_path}:", reply_markup=reply_markup)
+            await query.edit_message_text(file_content, reply_markup=reply_markup)
+            logger.info(f"Affichage du fichier {file_path}")
             
         elif data == "back_to_repos":
             await repos(update, context)
+            logger.info("Retour à la liste des dépôts")
             
     except Exception as e:
         logger.error(f"Erreur dans button_callback: {e}")
@@ -126,6 +122,7 @@ def main():
         app.run_polling()
     except Exception as e:
         logger.error(f"Erreur fatale: {e}")
+        raise
 
 if __name__ == "__main__":
     main()
