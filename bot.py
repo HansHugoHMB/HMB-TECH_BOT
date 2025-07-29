@@ -10,7 +10,7 @@ GITHUB_TOKEN = os.getenv("GIT_TOKEN")
 gh = Github(GIT_TOKEN)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Salut, bot HMB-Tech est en ligne ! Tape /repos pour voir tes dépôts.")
+    await update.message.reply_text("👋 Salut, bot HMB-TECH est en ligne ! Tape /repos pour voir tes dépôts. Et /start pour revenir aux menus principales")
 
 async def repos(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = gh.get_user()
