@@ -7,7 +7,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 GITHUB_TOKEN = os.getenv("GIT_TOKEN")
 
 # Initialise le client GitHub
-gh = Github(GIT_TOKEN)
+gh = Github("GIT_TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("👋 Salut, bot HMB-TECH est en ligne ! Tape /repos pour voir tes dépôts. Et /start pour revenir aux menus principales")
